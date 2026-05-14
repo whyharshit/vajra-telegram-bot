@@ -29,7 +29,7 @@ interface TelegramMessage {
 interface TelegramCallbackQuery {
   id: string;
   from: TelegramUser;
-  message?: { chat: { id: number } };
+  message?: { message_id?: number; chat: { id: number } };
   data?: string;
 }
 
@@ -208,7 +208,7 @@ async function handleCallback(query: TelegramCallbackQuery) {
     if (!["bn", "hi", "en"].includes(lang)) return;
     await dbGunakul.from("telegram_accounts").update({ preferred_lang: lang, updated_at: new Date().toISOString() }).eq("id", account.id);
     if (account.learner_id) await dbGunakul.from("learners").update({ preferred_lang: lang }).eq("id", account.learner_id);
-    await sendMessage(chatId, `Language set to ${lang.toUpperCase()}.`, mainMenu());
+    await sendMessage(chatId, `Language set to ${lang.toUpperCase()}.`, persistentMainMenu());
     return;
   }
 
