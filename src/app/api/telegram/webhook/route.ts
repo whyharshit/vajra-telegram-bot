@@ -135,38 +135,42 @@ async function handleMessage(message: TelegramMessage) {
     return;
   }
 
-  if (text === "/start") {
-    await sendHome(chatId, account, "Welcome back to Vajra Acharya.");
+  if (text === "/start" || text === "Home") {
+    await sendHome(chatId, account);
     return;
   }
   if (text === "/help") {
     await sendHelp(chatId);
     return;
   }
-  if (text === "/courses") {
-    await sendCourses(chatId, account.preferred_lang);
+  if (text === "/courses" || text === "Learn Modules") {
+    await sendCourses(chatId, account.preferred_lang, 1);
     return;
   }
-  if (text === "/ask") {
+  if (text === "/ask" || text === "Ask Vajra Acharya") {
     await setAccountMode(account.id, "ask");
-    await sendMessage(chatId, "Ask your electrical question.", mainMenu());
+    await sendMessage(chatId, "Ask mode is on. Send your electrical question now.", persistentMainMenu());
     return;
   }
-  if (text === "/apply") {
+  if (text === "/apply" || text === "Field Apply") {
     await setAccountMode(account.id, "apply");
-    await sendMessage(chatId, "Send what you did in the field today. You can send text, a photo with caption, or both.", mainMenu());
+    await sendMessage(chatId, "Apply mode is on. Send what you did in the field today. You can send text, a photo with caption, or both.", persistentMainMenu());
     return;
   }
-  if (text === "/quiz") {
-    await sendModulePicker(chatId, "quiz", account.preferred_lang);
+  if (text === "/quiz" || text === "Quiz") {
+    await sendModulePicker(chatId, "quiz", account.preferred_lang, 1);
     return;
   }
-  if (text === "/progress") {
+  if (text === "/progress" || text === "My Progress") {
     await sendProgress(chatId, account);
     return;
   }
   if (text === "/lang") {
     await sendLanguagePicker(chatId);
+    return;
+  }
+  if (text === "Videos" || text === "Tools" || text === "Farm Tools") {
+    await sendMessage(chatId, "This feature is coming soon!", persistentMainMenu());
     return;
   }
 
@@ -209,21 +213,21 @@ async function handleCallback(query: TelegramCallbackQuery) {
   }
 
   if (data === "courses") {
-    await sendCourses(chatId, account.preferred_lang);
+    await sendCourses(chatId, account.preferred_lang, 1);
     return;
   }
   if (data === "ask") {
     await setAccountMode(account.id, "ask");
-    await sendMessage(chatId, "Ask mode is on. Send your electrical question now.", mainMenu());
+    await sendMessage(chatId, "Ask mode is on. Send your electrical question now.", persistentMainMenu());
     return;
   }
   if (data === "apply") {
     await setAccountMode(account.id, "apply");
-    await sendMessage(chatId, "Apply mode is on. Send what you did in the field today. You can send text, a photo with caption, or both.", mainMenu());
+    await sendMessage(chatId, "Apply mode is on. Send what you did in the field today. You can send text, a photo with caption, or both.", persistentMainMenu());
     return;
   }
   if (data === "quiz") {
-    await sendModulePicker(chatId, "quiz", account.preferred_lang);
+    await sendModulePicker(chatId, "quiz", account.preferred_lang, 1);
     return;
   }
   if (data === "progress") {
@@ -232,6 +236,16 @@ async function handleCallback(query: TelegramCallbackQuery) {
   }
   if (data === "lang") {
     await sendLanguagePicker(chatId);
+    return;
+  }
+  if (data.startsWith("modpage:")) {
+    const page = parseInt(data.slice(8), 10);
+    await sendCourses(chatId, account.preferred_lang, page, query.message?.message_id);
+    return;
+  }
+  if (data.startsWith("quizpage:")) {
+    const page = parseInt(data.slice(9), 10);
+    await sendModulePicker(chatId, "quiz", account.preferred_lang, page, query.message?.message_id);
     return;
   }
   if (data.startsWith("mod:")) {
@@ -247,7 +261,7 @@ async function handleCallback(query: TelegramCallbackQuery) {
   if (data.startsWith("done:")) {
     const [, moduleId, sectionId] = data.split(":");
     await markSectionComplete(account, moduleId, sectionId);
-    await sendMessage(chatId, "Marked complete.", mainMenu());
+    await sendMessage(chatId, "Marked complete.", persistentMainMenu());
     return;
   }
   if (data.startsWith("quizmod:")) {
@@ -340,45 +354,53 @@ async function linkPhone(account: TelegramAccount, chatId: number, phone: string
     })
     .eq("id", account.id);
 
-  await sendMessage(chatId, "Phone linked. Your website progress will continue here.", { remove_keyboard: true });
-  await sendHome(chatId, { ...account, learner_id: learner.id as string }, "Choose what you want to do next.");
+  await sendMessage(chatId, "Login complete.", { remove_keyboard: true });
+  await sendHome(chatId, { ...account, learner_id: learner.id as string });
 }
 
 async function requestPhone(chatId: number) {
-  await sendMessage(chatId, "Share your phone number to link your Vajra Acharya account.", {
-    keyboard: [[{ text: "Share phone number", request_contact: true }]],
+  await sendMessage(chatId, "Welcome to Vajra Acharya.\n\nPlease login with your phone number first. After login, I will show the learning and training tools.", {
+    keyboard: [
+      [{ text: "Share my Telegram phone", request_contact: true }],
+      [{ text: "Type phone number" }]
+    ],
     resize_keyboard: true,
     one_time_keyboard: true,
   });
 }
 
-async function sendHome(chatId: number, account: TelegramAccount, intro: string) {
+async function sendHome(chatId: number, account: TelegramAccount) {
+  const completedIds = await completedModuleIds(account);
+  const totalModules = (await getModules()).length;
+  
+  const options: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long' };
+  const dateStr = new Date().toLocaleDateString('en-IN', options);
+
   await sendMessage(
     chatId,
-    `${intro}
-
-Use the buttons or commands:
-/ask - ask questions
-/quiz - take quiz
-/apply - submit field work
-/courses - study course
-/progress - check progress`,
-    mainMenu(),
+    `Vajra Acharya
+${dateStr}
+Modules completed: ${completedIds.length}/${totalModules}
+Continue: ${account.selected_module_id}
+Choose a tool below, or type any electrical question.`,
+    persistentMainMenu(),
   );
 }
 
-function mainMenu(): ReplyMarkup {
+function persistentMainMenu(): ReplyMarkup {
   return {
-    inline_keyboard: [
-      [{ text: "Ask", callback_data: "ask" }, { text: "Quiz", callback_data: "quiz" }],
-      [{ text: "Apply", callback_data: "apply" }, { text: "Courses", callback_data: "courses" }],
-      [{ text: "Progress", callback_data: "progress" }, { text: "Language", callback_data: "lang" }],
+    keyboard: [
+      [{ text: "Home" }, { text: "Learn Modules" }],
+      [{ text: "Videos" }, { text: "Quiz" }],
+      [{ text: "Ask Vajra Acharya" }, { text: "Field Apply" }],
+      [{ text: "Tools" }, { text: "My Progress" }],
     ],
+    resize_keyboard: true,
   };
 }
 
 async function sendHelp(chatId: number) {
-  await sendMessage(chatId, "/ask - ask a question\n/quiz - start quiz\n/apply - submit field work\n/courses - open modules\n/progress - progress summary\n/lang - change language", mainMenu());
+  await sendMessage(chatId, "/ask - ask a question\n/quiz - start quiz\n/apply - submit field work\n/courses - open modules\n/progress - progress summary\n/lang - change language", persistentMainMenu());
 }
 
 async function sendLanguagePicker(chatId: number) {
@@ -391,26 +413,57 @@ async function sendLanguagePicker(chatId: number) {
   });
 }
 
-async function sendCourses(chatId: number, lang: Lang) {
+async function sendCourses(chatId: number, lang: Lang, page: number, messageIdToEdit?: number) {
   const modules = await getModules();
   if (modules.length === 0) {
-    await sendMessage(chatId, "No course modules are available yet.", mainMenu());
+    await sendMessage(chatId, "No course modules are available yet.", persistentMainMenu());
     return;
   }
-  await sendMessage(chatId, "Choose a module.", {
-    inline_keyboard: modules.map((m) => ([{ text: title(m, lang), callback_data: `mod:${m.id}` }])),
-  });
+  
+  const perPage = 8;
+  const totalPages = Math.ceil(modules.length / perPage);
+  const start = (page - 1) * perPage;
+  const sliced = modules.slice(start, start + perPage);
+
+  const keyboard = sliced.map((m) => ([{ text: `${m.sort_order}. ${title(m, lang)}`, callback_data: `mod:${m.id}` }]));
+  
+  if (page < totalPages) {
+    keyboard.push([{ text: "Next ➡️", callback_data: `modpage:${page + 1}` }]);
+  }
+  if (page > 1) {
+    keyboard.push([{ text: "⬅️ Previous", callback_data: `modpage:${page - 1}` }]);
+  }
+
+  const text = `Choose a learning module\nPage ${page}/${totalPages}`;
+  
+  // Note: message editing not implemented in telegram.ts yet, sending new message
+  await sendMessage(chatId, text, { inline_keyboard: keyboard });
 }
 
-async function sendModulePicker(chatId: number, action: "quiz", lang: Lang) {
+async function sendModulePicker(chatId: number, action: "quiz", lang: Lang, page: number, messageIdToEdit?: number) {
   const modules = await getModules();
   if (modules.length === 0) {
-    await sendMessage(chatId, "No modules are available for quiz yet.", mainMenu());
+    await sendMessage(chatId, "No modules are available for quiz yet.", persistentMainMenu());
     return;
   }
-  await sendMessage(chatId, "Choose a module for quiz.", {
-    inline_keyboard: modules.map((m) => ([{ text: title(m, lang), callback_data: `quizmod:${m.id}` }])),
-  });
+  
+  const perPage = 8;
+  const totalPages = Math.ceil(modules.length / perPage);
+  const start = (page - 1) * perPage;
+  const sliced = modules.slice(start, start + perPage);
+
+  const keyboard = sliced.map((m) => ([{ text: `${m.sort_order}. ${title(m, lang)}`, callback_data: `quizmod:${m.id}` }]));
+  
+  if (page < totalPages) {
+    keyboard.push([{ text: "Next ➡️", callback_data: `quizpage:${page + 1}` }]);
+  }
+  if (page > 1) {
+    keyboard.push([{ text: "⬅️ Previous", callback_data: `quizpage:${page - 1}` }]);
+  }
+
+  const text = `Choose a module for quiz\nPage ${page}/${totalPages}`;
+  
+  await sendMessage(chatId, text, { inline_keyboard: keyboard });
 }
 
 async function getModules(): Promise<ModuleRow[]> {
@@ -425,7 +478,7 @@ async function getModules(): Promise<ModuleRow[]> {
 async function sendSections(chatId: number, moduleId: string, lang: Lang) {
   const sections = await getSections(moduleId);
   if (sections.length === 0) {
-    await sendMessage(chatId, "No sections are available for this module yet.", mainMenu());
+    await sendMessage(chatId, "No sections are available for this module yet.", persistentMainMenu());
     return;
   }
   await sendMessage(chatId, "Choose a section.", {
@@ -509,7 +562,7 @@ async function handleAskMessage(chatId: number, account: TelegramAccount, text: 
     ai_response: reply,
     response_time_ms: Date.now() - started,
   });
-  await sendMessage(chatId, reply, mainMenu());
+  await sendMessage(chatId, reply, persistentMainMenu());
 }
 
 async function getChatHistory(learnerId: string, moduleId: string, lang: Lang) {
@@ -553,7 +606,7 @@ async function handleApplyMessage(chatId: number, account: TelegramAccount, mess
 
 ${evaluation.feedback}
 
-Next: ${evaluation.nextStep}`, mainMenu());
+Next: ${evaluation.nextStep}`, persistentMainMenu());
 }
 
 async function startQuiz(chatId: number, account: TelegramAccount, moduleId: string) {
@@ -605,7 +658,7 @@ async function handleQuizAnswer(chatId: number, account: TelegramAccount, answer
       questions: nextState.questions,
     });
     await dbGunakul.from("telegram_accounts").update({ state: {}, updated_at: new Date().toISOString() }).eq("id", account.id);
-    await sendMessage(chatId, `Quiz complete. Score: ${nextState.score}/${nextState.questions.length}`, mainMenu());
+    await sendMessage(chatId, `Quiz complete. Score: ${nextState.score}/${nextState.questions.length}`, persistentMainMenu());
   } else {
     await dbGunakul.from("telegram_accounts").update({ state: nextState, updated_at: new Date().toISOString() }).eq("id", account.id);
     await sendQuizQuestion(chatId, nextState);
@@ -637,7 +690,7 @@ async function sendProgress(chatId: number, account: TelegramAccount) {
   const lines = rows.map((r: { module_id: string; completed: boolean; sections_completed?: string[] }) =>
     `${r.completed ? "[done]" : "[in progress]"} ${r.module_id} - ${(r.sections_completed || []).length} sections`,
   );
-  await sendMessage(chatId, `Your progress:\n\n${lines.join("\n")}`, mainMenu());
+  await sendMessage(chatId, `Your progress:\n\n${lines.join("\n")}`, persistentMainMenu());
 }
 
 async function setAccountMode(accountId: string, mode: "ask" | "apply") {
