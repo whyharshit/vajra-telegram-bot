@@ -139,6 +139,12 @@ async function handleMessage(message: TelegramMessage) {
     await sendHome(chatId, account);
     return;
   }
+  if (text === "/logout" || text === "🔴 Logout") {
+    await dbGunakul.from("telegram_accounts").update({ learner_id: null, phone: null, updated_at: new Date().toISOString() }).eq("id", account.id);
+    await sendMessage(chatId, "You have been logged out successfully.", { remove_keyboard: true });
+    await requestPhone(chatId);
+    return;
+  }
   if (text === "/help") {
     await sendHelp(chatId);
     return;
@@ -394,6 +400,7 @@ function persistentMainMenu(): ReplyMarkup {
       [{ text: "Videos" }, { text: "Quiz" }],
       [{ text: "Ask Vajra Acharya" }, { text: "Field Apply" }],
       [{ text: "Tools" }, { text: "My Progress" }],
+      [{ text: "🔴 Logout" }],
     ],
     resize_keyboard: true,
   };
