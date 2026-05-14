@@ -6,6 +6,46 @@ import { answerCallbackQuery, getFileAsDataUrl, sendMessage, type ReplyMarkup } 
 
 export const runtime = "nodejs";
 export const preferredRegion = "bom1";
+
+const I18N: Record<string, Record<string, string>> = {
+  home: { en: "Home", hi: "होम", bn: "হোম" },
+  modules: { en: "Learn Modules", hi: "मॉड्यूल सीखें", bn: "মডিউল শিখুন" },
+  videos: { en: "Videos", hi: "वीडियो", bn: "ভিডিও" },
+  quiz: { en: "Quiz", hi: "क्विज़", bn: "কুইজ" },
+  ask: { en: "Ask Vajra Acharya", hi: "वज्र आचार्य से पूछें", bn: "বজ্র আচার্যকে জিজ্ঞাসা করুন" },
+  apply: { en: "Field Apply", hi: "फील्ड अप्लाई", bn: "ফিল্ড অ্যাপ্লাই" },
+  tools: { en: "Tools", hi: "उपकरण", bn: "সরঞ্জাম" },
+  progress: { en: "My Progress", hi: "मेरी प्रगति", bn: "আমার অগ্রগতি" },
+  logout: { en: "🚪 Logout / Switch User", hi: "🚪 लॉगआउट / उपयोगकर्ता बदलें", bn: "🚪 লগআউট / ব্যবহারকারী পরিবর্তন করুন" },
+  login_prompt: { en: "Welcome to Vajra Acharya.\n\nPlease login with your phone number first.", hi: "वज्र आचार्य में आपका स्वागत है।\n\nकृपया पहले अपने फोन नंबर से लॉगिन करें।", bn: "বজ্র আচার্য-এ স্বাগতম।\n\nঅনুগ্রহ করে প্রথমে আপনার ফোন নম্বর দিয়ে লগইন করুন।" },
+  share_phone: { en: "Share my Telegram phone", hi: "अपना फोन नंबर साझा करें", bn: "ফোন নম্বর শেয়ার করুন" },
+  type_phone: { en: "Type phone number", hi: "फोन नंबर टाइप करें", bn: "ফোন নম্বর টাইপ করুন" },
+  login_complete: { en: "Login complete.", hi: "लॉगिन पूरा हुआ।", bn: "লগইন সম্পন্ন।" },
+  logged_out: { en: "You have been logged out successfully.", hi: "आप सफलतापूर्वक लॉग आउट हो गए हैं।", bn: "আপনি সফলভাবে লগআউট হয়েছেন।" },
+  ask_mode: { en: "Ask mode is on. Send your electrical question now.", hi: "पूछताछ मोड चालू है। अपना इलेक्ट्रिकल प्रश्न अभी भेजें।", bn: "জিজ্ঞাসা মোড চালু আছে। আপনার বৈদ্যুতিক প্রশ্ন এখন পাঠান।" },
+  apply_mode: { en: "Apply mode is on. Send what you did in the field today. You can send text, a photo, or a voice note.", hi: "अप्लाई मोड चालू है। आज आपने फील्ड में क्या किया, भेजें। आप टेक्स्ट, फोटो या वॉयस नोट भेज सकते हैं।", bn: "অ্যাপ্লাই মোড চালু আছে। আজ আপনি মাঠে কী করেছেন তা পাঠান। আপনি টেক্সট, ছবি বা ভয়েস নোট পাঠাতে পারেন।" },
+  choose_module: { en: "Choose a learning module", hi: "एक लर्निंग मॉड्यूल चुनें", bn: "একটি লার্নিং মডিউল বেছে নিন" },
+  choose_quiz: { en: "Choose a module for quiz", hi: "क्विज़ के लिए एक मॉड्यूल चुनें", bn: "কুইজের জন্য একটি মডিউল বেছে নিন" },
+  next: { en: "Next ➡️", hi: "अगला ➡️", bn: "পরবর্তী ➡️" },
+  prev: { en: "⬅️ Previous", hi: "⬅️ पिछला", bn: "⬅️ পূর্ববর্তী" },
+  mod_completed: { en: "Modules completed", hi: "मॉड्यूल पूरे हुए", bn: "মডিউল সম্পন্ন" },
+  continue: { en: "Continue", hi: "जारी रखें", bn: "চালিয়ে যান" },
+  choose_tool: { en: "Choose a tool below, or type any electrical question.", hi: "नीचे एक उपकरण चुनें, या कोई भी इलेक्ट्रिकल प्रश्न टाइप करें।", bn: "নীচে একটি টুল বেছে নিন, অথবা যে কোনো বৈদ্যুতিক প্রশ্ন টাইপ করুন।" },
+  send_question: { en: "Send a question, or use /courses, /quiz, /apply.", hi: "एक प्रश्न भेजें, या /courses, /quiz, /apply का उपयोग करें।", bn: "একটি প্রশ্ন পাঠান, অথবা /courses, /quiz, /apply ব্যবহার করুন।" },
+  thinking: { en: "Thinking...", hi: "सोच रहा हूँ...", bn: "ভাবছি..." },
+  reviewing: { en: "Reviewing your field work...", hi: "आपके फील्ड वर्क की समीक्षा हो रही है...", bn: "আপনার ফিল্ড ওয়ার্ক পর্যালোচনা করা হচ্ছে..." },
+  no_progress: { en: "No progress yet.", hi: "अभी तक कोई प्रगति नहीं।", bn: "এখনও কোন অগ্রগতি নেই।" },
+  recent_activity: { en: "Recent Activity", hi: "हाल की गतिविधि", bn: "সাম্প্রতিক কার্যকলাপ" },
+  course_progress: { en: "Your Course Progress", hi: "आपकी कोर्स प्रगति", bn: "আপনার কোর্স অগ্রগতি" },
+};
+
+function t(key: string, lang: Lang = "en"): string {
+  return I18N[key]?.[lang] || I18N[key]?.en || key;
+}
+function isCmd(text: string, key: string): boolean {
+  return text === I18N[key]?.en || text === I18N[key]?.hi || text === I18N[key]?.bn;
+}
+
 export const maxDuration = 60;
 
 type Lang = "bn" | "hi" | "en";
@@ -132,43 +172,43 @@ async function handleMessage(message: TelegramMessage) {
       await linkPhone(account, chatId, typedPhone);
       return;
     }
-    await requestPhone(chatId);
+    await requestPhone(chatId, account?.preferred_lang || "en");
     return;
   }
 
-  if (text === "/start" || text === "Home") {
+  if (text === "/start" || isCmd(text, "home")) {
     await sendHome(chatId, account);
     return;
   }
-  if (text === "/logout" || text === "🔴 Logout" || text === "🚪 Logout / Switch User") {
+  if (text === "/logout" || isCmd(text, "logout")) {
     await dbGunakul.from("telegram_accounts").update({ learner_id: null, phone: null, updated_at: new Date().toISOString() }).eq("id", account.id);
-    await sendMessage(chatId, "You have been logged out successfully. Another person can now share their phone number to log in.\n\n*(Note: To remove previous messages from the screen, please use Telegram's built-in 'Clear History' option in the top-right menu.)*", { remove_keyboard: true });
-    await requestPhone(chatId);
+    await sendMessage(chatId, t("logged_out", account.preferred_lang) + "\n\n*(Note: To remove previous messages from the screen, please use Telegram's built-in \'Clear History\' option in the top-right menu.)*", { remove_keyboard: true });
+    await requestPhone(chatId, account?.preferred_lang || "en");
     return;
   }
   if (text === "/help") {
-    await sendHelp(chatId);
+    await sendHelp(chatId, account);
     return;
   }
-  if (text === "/courses" || text === "Learn Modules") {
+  if (text === "/courses" || isCmd(text, "modules")) {
     await sendCourses(chatId, account.preferred_lang, 1);
     return;
   }
-  if (text === "/ask" || text === "Ask Vajra Acharya") {
+  if (text === "/ask" || isCmd(text, "ask")) {
     await setAccountMode(account.id, "ask");
-    await sendMessage(chatId, "Ask mode is on. Send your electrical question now.", persistentMainMenu());
+    await sendMessage(chatId, t("ask_mode", account.preferred_lang), persistentMainMenu(account.preferred_lang));
     return;
   }
-  if (text === "/apply" || text === "Field Apply") {
+  if (text === "/apply" || isCmd(text, "apply")) {
     await setAccountMode(account.id, "apply");
-    await sendMessage(chatId, "Apply mode is on. Send what you did in the field today. You can send text, a photo with caption, or both.", persistentMainMenu());
+    await sendMessage(chatId, t("apply_mode", account.preferred_lang), persistentMainMenu(account.preferred_lang));
     return;
   }
-  if (text === "/quiz" || text === "Quiz") {
+  if (text === "/quiz" || isCmd(text, "quiz")) {
     await sendModulePicker(chatId, "quiz", account.preferred_lang, 1);
     return;
   }
-  if (text === "/progress" || text === "My Progress") {
+  if (text === "/progress" || isCmd(text, "progress")) {
     await sendProgress(chatId, account);
     return;
   }
@@ -176,7 +216,7 @@ async function handleMessage(message: TelegramMessage) {
     await sendLanguagePicker(chatId);
     return;
   }
-  if (text === "Tools" || text === "Farm Tools") {
+  if (isCmd(text, "tools")) {
     const toolsMsg = `🛠️ Essential Toolkit Checklist:
 
 1. Insulated Screwdriver Set
@@ -188,11 +228,11 @@ async function handleMessage(message: TelegramMessage) {
 7. Rubber Safety Gloves
 
 ⚠️ Rule: Always inspect tool insulation before touching any wires!`;
-    await sendMessage(chatId, toolsMsg, persistentMainMenu());
+    await sendMessage(chatId, toolsMsg, persistentMainMenu(account.preferred_lang));
     return;
   }
 
-  if (text === "Videos") {
+  if (isCmd(text, "videos")) {
     const videosMsg = `📺 Electrician Training Videos:
 
 • Basic House Wiring: https://youtu.be/search?q=house+wiring
@@ -200,7 +240,7 @@ async function handleMessage(message: TelegramMessage) {
 • MCB vs RCCB: https://youtu.be/search?q=mcb+vs+rccb+explained
 
 (More video courses coming soon!)`;
-    await sendMessage(chatId, videosMsg, persistentMainMenu());
+    await sendMessage(chatId, videosMsg, persistentMainMenu(account.preferred_lang));
     return;
   }
 
@@ -215,7 +255,7 @@ async function handleMessage(message: TelegramMessage) {
   }
 
   if (!text && !message.voice) {
-    await sendMessage(chatId, "Send a question, or use /courses, /quiz, /apply.");
+    await sendMessage(chatId, t("send_question", account.preferred_lang));
     return;
   }
   await handleAskMessage(chatId, account, text, message.voice);
@@ -229,7 +269,7 @@ async function handleCallback(query: TelegramCallbackQuery) {
   const account = await getOrCreateAccount(query.from, chatId);
 
   if (!account.learner_id && !data.startsWith("lang:")) {
-    await requestPhone(chatId);
+    await requestPhone(chatId, account?.preferred_lang || "en");
     return;
   }
 
@@ -238,7 +278,7 @@ async function handleCallback(query: TelegramCallbackQuery) {
     if (!["bn", "hi", "en"].includes(lang)) return;
     await dbGunakul.from("telegram_accounts").update({ preferred_lang: lang, updated_at: new Date().toISOString() }).eq("id", account.id);
     if (account.learner_id) await dbGunakul.from("learners").update({ preferred_lang: lang }).eq("id", account.learner_id);
-    await sendMessage(chatId, `Language set to ${lang.toUpperCase()}.`, persistentMainMenu());
+    await sendMessage(chatId, `Language set to ${lang.toUpperCase()}.`, persistentMainMenu(account.preferred_lang));
     return;
   }
 
@@ -248,12 +288,12 @@ async function handleCallback(query: TelegramCallbackQuery) {
   }
   if (data === "ask") {
     await setAccountMode(account.id, "ask");
-    await sendMessage(chatId, "Ask mode is on. Send your electrical question now.", persistentMainMenu());
+    await sendMessage(chatId, t("ask_mode", account.preferred_lang), persistentMainMenu(account.preferred_lang));
     return;
   }
   if (data === "apply") {
     await setAccountMode(account.id, "apply");
-    await sendMessage(chatId, "Apply mode is on. Send what you did in the field today. You can send text, a photo with caption, or both.", persistentMainMenu());
+    await sendMessage(chatId, t("apply_mode", account.preferred_lang), persistentMainMenu(account.preferred_lang));
     return;
   }
   if (data === "quiz") {
@@ -291,7 +331,7 @@ async function handleCallback(query: TelegramCallbackQuery) {
   if (data.startsWith("done:")) {
     const [, moduleId, sectionId] = data.split(":");
     await markSectionComplete(account, moduleId, sectionId);
-    await sendMessage(chatId, "Marked complete.", persistentMainMenu());
+    await sendMessage(chatId, "Marked complete.", persistentMainMenu(account.preferred_lang));
     return;
   }
   if (data.startsWith("quizmod:")) {
@@ -384,15 +424,15 @@ async function linkPhone(account: TelegramAccount, chatId: number, phone: string
     })
     .eq("id", account.id);
 
-  await sendMessage(chatId, "Login complete.", { remove_keyboard: true });
+  await sendMessage(chatId, t("login_complete", account.preferred_lang), { remove_keyboard: true });
   await sendHome(chatId, { ...account, learner_id: learner.id as string });
 }
 
-async function requestPhone(chatId: number) {
-  await sendMessage(chatId, "Welcome to Vajra Acharya.\n\nPlease login with your phone number first. After login, I will show the learning and training tools.", {
+async function requestPhone(chatId: number, lang: Lang = "en") {
+  await sendMessage(chatId, t("login_prompt", lang), {
     keyboard: [
-      [{ text: "Share my Telegram phone", request_contact: true }],
-      [{ text: "Type phone number" }]
+      [{ text: t("share_phone", lang), request_contact: true }],
+      [{ text: t("type_phone", lang) }]
     ],
     resize_keyboard: true,
     one_time_keyboard: true,
@@ -413,25 +453,25 @@ ${dateStr}
 Modules completed: ${completedIds.length}/${totalModules}
 Continue: ${account.selected_module_id}
 Choose a tool below, or type any electrical question.`,
-    persistentMainMenu(),
+    persistentMainMenu(account.preferred_lang),
   );
 }
 
-function persistentMainMenu(): ReplyMarkup {
+function persistentMainMenu(lang: Lang = "en"): ReplyMarkup {
   return {
     keyboard: [
-      [{ text: "Home" }, { text: "Learn Modules" }],
-      [{ text: "Videos" }, { text: "Quiz" }],
-      [{ text: "Ask Vajra Acharya" }, { text: "Field Apply" }],
-      [{ text: "Tools" }, { text: "My Progress" }],
-      [{ text: "🚪 Logout / Switch User" }],
+      [{ text: t("home", lang) }, { text: t("modules", lang) }],
+      [{ text: t("videos", lang) }, { text: t("quiz", lang) }],
+      [{ text: t("ask", lang) }, { text: t("apply", lang) }],
+      [{ text: t("tools", lang) }, { text: t("progress", lang) }],
+      [{ text: t("logout", lang) }],
     ],
     resize_keyboard: true,
   };
 }
 
-async function sendHelp(chatId: number) {
-  await sendMessage(chatId, "/ask - ask a question\n/quiz - start quiz\n/apply - submit field work\n/courses - open modules\n/progress - progress summary\n/lang - change language", persistentMainMenu());
+async function sendHelp(chatId: number, account: TelegramAccount) {
+  await sendMessage(chatId, "/ask - ask a question\n/quiz - start quiz\n/apply - submit field work\n/courses - open modules\n/progress - progress summary\n/lang - change language", persistentMainMenu(account.preferred_lang));
 }
 
 async function sendLanguagePicker(chatId: number) {
@@ -447,7 +487,7 @@ async function sendLanguagePicker(chatId: number) {
 async function sendCourses(chatId: number, lang: Lang, page: number, messageIdToEdit?: number) {
   const modules = await getModules();
   if (modules.length === 0) {
-    await sendMessage(chatId, "No course modules are available yet.", persistentMainMenu());
+    await sendMessage(chatId, "No course modules are available yet.", persistentMainMenu(lang));
     return;
   }
   
@@ -459,13 +499,13 @@ async function sendCourses(chatId: number, lang: Lang, page: number, messageIdTo
   const keyboard = sliced.map((m) => ([{ text: `${m.sort_order}. ${title(m, lang)}`, callback_data: `mod:${m.id}` }]));
   
   if (page < totalPages) {
-    keyboard.push([{ text: "Next ➡️", callback_data: `modpage:${page + 1}` }]);
+    keyboard.push([{ text: t("next", lang), callback_data: `modpage:${page + 1}` }]);
   }
   if (page > 1) {
-    keyboard.push([{ text: "⬅️ Previous", callback_data: `modpage:${page - 1}` }]);
+    keyboard.push([{ text: t("prev", lang), callback_data: `modpage:${page - 1}` }]);
   }
 
-  const text = `Choose a learning module\nPage ${page}/${totalPages}`;
+  const text = `${t("choose_module", lang)}\nPage ${page}/${totalPages}`;
   
   // Note: message editing not implemented in telegram.ts yet, sending new message
   await sendMessage(chatId, text, { inline_keyboard: keyboard });
@@ -474,7 +514,7 @@ async function sendCourses(chatId: number, lang: Lang, page: number, messageIdTo
 async function sendModulePicker(chatId: number, action: "quiz", lang: Lang, page: number, messageIdToEdit?: number) {
   const modules = await getModules();
   if (modules.length === 0) {
-    await sendMessage(chatId, "No modules are available for quiz yet.", persistentMainMenu());
+    await sendMessage(chatId, "No modules are available for quiz yet.", persistentMainMenu(lang));
     return;
   }
   
@@ -486,13 +526,13 @@ async function sendModulePicker(chatId: number, action: "quiz", lang: Lang, page
   const keyboard = sliced.map((m) => ([{ text: `${m.sort_order}. ${title(m, lang)}`, callback_data: `quizmod:${m.id}` }]));
   
   if (page < totalPages) {
-    keyboard.push([{ text: "Next ➡️", callback_data: `quizpage:${page + 1}` }]);
+    keyboard.push([{ text: t("next", lang), callback_data: `quizpage:${page + 1}` }]);
   }
   if (page > 1) {
-    keyboard.push([{ text: "⬅️ Previous", callback_data: `quizpage:${page - 1}` }]);
+    keyboard.push([{ text: t("prev", lang), callback_data: `quizpage:${page - 1}` }]);
   }
 
-  const text = `Choose a module for quiz\nPage ${page}/${totalPages}`;
+  const text = `${t("choose_quiz", lang)}\nPage ${page}/${totalPages}`;
   
   await sendMessage(chatId, text, { inline_keyboard: keyboard });
 }
@@ -509,7 +549,7 @@ async function getModules(): Promise<ModuleRow[]> {
 async function sendSections(chatId: number, moduleId: string, lang: Lang) {
   const sections = await getSections(moduleId);
   if (sections.length === 0) {
-    await sendMessage(chatId, "No sections are available for this module yet.", persistentMainMenu());
+    await sendMessage(chatId, "No sections are available for this module yet.", persistentMainMenu(lang));
     return;
   }
   await sendMessage(chatId, "Choose a section.", {
@@ -576,7 +616,7 @@ async function markSectionComplete(account: TelegramAccount, moduleId: string, s
 
 async function handleAskMessage(chatId: number, account: TelegramAccount, text: string, voice?: TelegramMessage['voice']) {
   if (!account.learner_id) return;
-  await sendMessage(chatId, "Thinking...");
+  await sendMessage(chatId, t("thinking", account.preferred_lang));
   const started = Date.now();
   const history = await getChatHistory(account.learner_id, account.selected_module_id, account.preferred_lang);
   const reply = await generateChatReply({
@@ -593,7 +633,7 @@ async function handleAskMessage(chatId: number, account: TelegramAccount, text: 
     ai_response: reply,
     response_time_ms: Date.now() - started,
   });
-  await sendMessage(chatId, reply, persistentMainMenu());
+  await sendMessage(chatId, reply, persistentMainMenu(account.preferred_lang));
 }
 
 async function getChatHistory(learnerId: string, moduleId: string, lang: Lang) {
@@ -619,7 +659,7 @@ async function handleApplyMessage(chatId: number, account: TelegramAccount, mess
   const image = fileId ? await getFileAsDataUrl(fileId).catch(() => null) : null;
 
   if (!text && !image) return;
-  await sendMessage(chatId, "Reviewing your field work...");
+  await sendMessage(chatId, t("reviewing", account.preferred_lang));
   const evaluation = await evaluateApply({
     text,
     moduleId: account.selected_module_id,
@@ -640,7 +680,7 @@ async function handleApplyMessage(chatId: number, account: TelegramAccount, mess
 
 ${evaluation.feedback}
 
-Next: ${evaluation.nextStep}`, persistentMainMenu());
+Next: ${evaluation.nextStep}`, persistentMainMenu(account.preferred_lang));
 }
 
 async function startQuiz(chatId: number, account: TelegramAccount, moduleId: string) {
@@ -692,7 +732,7 @@ async function handleQuizAnswer(chatId: number, account: TelegramAccount, answer
       questions: nextState.questions,
     });
     await dbGunakul.from("telegram_accounts").update({ state: {}, updated_at: new Date().toISOString() }).eq("id", account.id);
-    await sendMessage(chatId, `Quiz complete. Score: ${nextState.score}/${nextState.questions.length}`, persistentMainMenu());
+    await sendMessage(chatId, `Quiz complete. Score: ${nextState.score}/${nextState.questions.length}`, persistentMainMenu(account.preferred_lang));
   } else {
     await dbGunakul.from("telegram_accounts").update({ state: nextState, updated_at: new Date().toISOString() }).eq("id", account.id);
     await sendQuizQuestion(chatId, nextState);
@@ -732,7 +772,7 @@ async function sendProgress(chatId: number, account: TelegramAccount) {
     `• ${h.user_message.slice(0, 30)}${h.user_message.length > 30 ? '...' : ''}`
   );
 
-  await sendMessage(chatId, `📊 Your Course Progress:\n\n${lines.join("\n") || "No progress yet."}\n\n🕒 Recent Activity:\n${historyLines.join("\n") || "No recent activity."}`, persistentMainMenu());
+  await sendMessage(chatId, `📊 ${t("course_progress", account.preferred_lang)}:\n\n${lines.join("\n") || t("no_progress", account.preferred_lang)}\n\n🕒 ${t("recent_activity", account.preferred_lang)}:\n${historyLines.join("\n") || t("no_progress", account.preferred_lang)}`, persistentMainMenu(account.preferred_lang));
 }
 
 async function setAccountMode(accountId: string, mode: "ask" | "apply") {
