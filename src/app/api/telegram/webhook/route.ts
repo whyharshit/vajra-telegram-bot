@@ -175,8 +175,31 @@ async function handleMessage(message: TelegramMessage) {
     await sendLanguagePicker(chatId);
     return;
   }
-  if (text === "Videos" || text === "Tools" || text === "Farm Tools") {
-    await sendMessage(chatId, "This feature is coming soon!", persistentMainMenu());
+  if (text === "Tools" || text === "Farm Tools") {
+    const toolsMsg = `🛠️ Essential Toolkit Checklist:
+
+1. Insulated Screwdriver Set
+2. Wire Stripper & Cutter
+3. Digital Multimeter
+4. Phase/Neon Tester
+5. Combination Pliers
+6. Electrical Tape (ISI Marked)
+7. Rubber Safety Gloves
+
+⚠️ Rule: Always inspect tool insulation before touching any wires!`;
+    await sendMessage(chatId, toolsMsg, persistentMainMenu());
+    return;
+  }
+
+  if (text === "Videos") {
+    const videosMsg = `📺 Electrician Training Videos:
+
+• Basic House Wiring: https://youtu.be/search?q=house+wiring
+• Multimeter Tutorial: https://youtu.be/search?q=use+multimeter
+• MCB vs RCCB: https://youtu.be/search?q=mcb+vs+rccb+explained
+
+(More video courses coming soon!)`;
+    await sendMessage(chatId, videosMsg, persistentMainMenu());
     return;
   }
 
