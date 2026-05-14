@@ -14,6 +14,7 @@ const I18N: Record<string, Record<string, string>> = {
   quiz: { en: "Quiz", hi: "क्विज़", bn: "কুইজ" },
   ask: { en: "Ask Vajra Acharya", hi: "वज्र आचार्य से पूछें", bn: "বজ্র আচার্যকে জিজ্ঞাসা করুন" },
   apply: { en: "Field Apply", hi: "फील्ड अप्लाई", bn: "ফিল্ড অ্যাপ্লাই" },
+  language: { en: "🌐 Language", hi: "🌐 भाषा", bn: "🌐 ভাষা" },
   tools: { en: "Tools", hi: "उपकरण", bn: "সরঞ্জাম" },
   progress: { en: "My Progress", hi: "मेरी प्रगति", bn: "আমার অগ্রগতি" },
   logout: { en: "🚪 Logout / Switch User", hi: "🚪 लॉगआउट / उपयोगकर्ता बदलें", bn: "🚪 লগআউট / ব্যবহারকারী পরিবর্তন করুন" },
@@ -212,7 +213,7 @@ async function handleMessage(message: TelegramMessage) {
     await sendProgress(chatId, account);
     return;
   }
-  if (text === "/lang") {
+  if (text === "/lang" || isCmd(text, "language")) {
     await sendLanguagePicker(chatId);
     return;
   }
@@ -463,7 +464,7 @@ function persistentMainMenu(lang: Lang = "en"): ReplyMarkup {
       [{ text: t("home", lang) }, { text: t("modules", lang) }],
       [{ text: t("videos", lang) }, { text: t("quiz", lang) }],
       [{ text: t("ask", lang) }, { text: t("apply", lang) }],
-      [{ text: t("tools", lang) }, { text: t("progress", lang) }],
+      [{ text: t("language", lang) }, { text: t("progress", lang) }],
       [{ text: t("logout", lang) }],
     ],
     resize_keyboard: true,
