@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbAcharya, dbConfigured, dbGunakul } from "@/lib/server/supabase";
 import { normalizeIndianPhone } from "@/lib/phone";
 import { evaluateApply, fallbackQuizQuestions, generateChatReply, generateQuizQuestions, type QuizQuestion } from "@/lib/server/gemini";
-import { answerCallbackQuery, getPhotoAsDataUrl, sendMessage, type ReplyMarkup } from "@/lib/server/telegram";
+import { answerCallbackQuery, getFileAsDataUrl, sendMessage, type ReplyMarkup } from "@/lib/server/telegram";
 
 export const runtime = "nodejs";
 export const preferredRegion = "bom1";
@@ -24,6 +24,7 @@ interface TelegramMessage {
   caption?: string;
   contact?: { phone_number?: string; user_id?: number };
   photo?: Array<{ file_id: string; file_size?: number }>;
+  voice?: { file_id: string; duration?: number; mime_type?: string };
 }
 
 interface TelegramCallbackQuery {
@@ -213,11 +214,11 @@ async function handleMessage(message: TelegramMessage) {
     return;
   }
 
-  if (!text) {
+  if (!text && !message.voice) {
     await sendMessage(chatId, "Send a question, or use /courses, /quiz, /apply.");
     return;
   }
-  await handleAskMessage(chatId, account, text);
+  await handleAskMessage(chatId, account, text, message.voice);
 }
 
 async function handleCallback(query: TelegramCallbackQuery) {
@@ -573,13 +574,13 @@ async function markSectionComplete(account: TelegramAccount, moduleId: string, s
   );
 }
 
-async function handleAskMessage(chatId: number, account: TelegramAccount, text: string) {
+async function handleAskMessage(chatId: number, account: TelegramAccount, text: string, voice?: TelegramMessage['voice']) {
   if (!account.learner_id) return;
   await sendMessage(chatId, "Thinking...");
   const started = Date.now();
   const history = await getChatHistory(account.learner_id, account.selected_module_id, account.preferred_lang);
   const reply = await generateChatReply({
-    message: text,
+    message: text || "[voice note]",
     history,
     moduleId: account.selected_module_id,
     lang: account.preferred_lang,
@@ -588,7 +589,7 @@ async function handleAskMessage(chatId: number, account: TelegramAccount, text: 
     learner_id: account.learner_id,
     module_id: account.selected_module_id,
     lang: account.preferred_lang,
-    user_message: text,
+    user_message: text || "[voice note]",
     ai_response: reply,
     response_time_ms: Date.now() - started,
   });
@@ -614,7 +615,10 @@ async function handleApplyMessage(chatId: number, account: TelegramAccount, mess
   if (!account.learner_id) return;
   const text = (message.text || message.caption || "").trim();
   const photo = message.photo?.slice().sort((a, b) => (b.file_size || 0) - (a.file_size || 0))[0];
-  const image = photo ? await getPhotoAsDataUrl(photo.file_id).catch(() => null) : null;
+  const fileId = photo?.file_id || message.voice?.file_id;
+  const image = fileId ? await getFileAsDataUrl(fileId).catch(() => null) : null;
+
+  if (!text && !image) return;
   await sendMessage(chatId, "Reviewing your field work...");
   const evaluation = await evaluateApply({
     text,
@@ -626,7 +630,7 @@ async function handleApplyMessage(chatId: number, account: TelegramAccount, mess
   await dbGunakul.from("apply_logs").insert({
     learner_id: account.learner_id,
     module_id: account.selected_module_id,
-    input: text || (photo ? "[photo submitted]" : ""),
+    input: text || (photo ? "[photo submitted]" : message.voice ? "[voice submitted]" : ""),
     score: evaluation.score,
     feedback: evaluation.feedback,
     next_step: evaluation.nextStep,
@@ -707,20 +711,28 @@ ${q.q}`, {
 
 async function sendProgress(chatId: number, account: TelegramAccount) {
   if (!account.learner_id) return;
-  const { data } = await dbGunakul
+  const { data: rows } = await dbGunakul
     .from("progress")
     .select("module_id, completed, sections_completed")
     .eq("learner_id", account.learner_id)
     .order("updated_at", { ascending: false });
-  const rows = data || [];
-  if (rows.length === 0) {
-    await sendMessage(chatId, "No progress yet. Use /courses to start.");
-    return;
-  }
-  const lines = rows.map((r: { module_id: string; completed: boolean; sections_completed?: string[] }) =>
+
+  const { data: history } = await dbGunakul
+    .from("chat_logs")
+    .select("user_message, created_at")
+    .eq("learner_id", account.learner_id)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  const lines = (rows || []).map((r: { module_id: string; completed: boolean; sections_completed?: string[] }) =>
     `${r.completed ? "[done]" : "[in progress]"} ${r.module_id} - ${(r.sections_completed || []).length} sections`,
   );
-  await sendMessage(chatId, `Your progress:\n\n${lines.join("\n")}`, persistentMainMenu());
+  
+  const historyLines = (history || []).map((h: { user_message: string, created_at: string }) => 
+    `• ${h.user_message.slice(0, 30)}${h.user_message.length > 30 ? '...' : ''}`
+  );
+
+  await sendMessage(chatId, `📊 Your Course Progress:\n\n${lines.join("\n") || "No progress yet."}\n\n🕒 Recent Activity:\n${historyLines.join("\n") || "No recent activity."}`, persistentMainMenu());
 }
 
 async function setAccountMode(accountId: string, mode: "ask" | "apply") {

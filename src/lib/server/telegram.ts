@@ -49,16 +49,16 @@ export async function answerCallbackQuery(callbackQueryId: string, text?: string
   });
 }
 
-export async function getPhotoAsDataUrl(fileId: string): Promise<string | null> {
+export async function getFileAsDataUrl(fileId: string): Promise<string | null> {
   if (!apiBase || !token) throw new Error("TELEGRAM_BOT_TOKEN is not configured");
   const fileRes = await telegram("getFile", { file_id: fileId }) as { result?: { file_path?: string } } | null;
   const filePath = fileRes?.result?.file_path;
   if (!filePath) return null;
   const mediaRes = await fetch(`https://api.telegram.org/file/bot${token}/${filePath}`);
   if (!mediaRes.ok) return null;
-  const contentType = mediaRes.headers.get("content-type") || "image/jpeg";
+  const contentType = mediaRes.headers.get("content-type") || "application/octet-stream";
   const bytes = Buffer.from(await mediaRes.arrayBuffer());
-  if (bytes.byteLength > 4 * 1024 * 1024) return null;
+  if (bytes.byteLength > 8 * 1024 * 1024) return null; // Increased to 8MB for voice
   return `data:${contentType};base64,${bytes.toString("base64")}`;
 }
 

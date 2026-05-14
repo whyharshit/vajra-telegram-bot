@@ -36,13 +36,13 @@ function textFromGemini(json: unknown): string {
     .trim() || "";
 }
 
-function imagePart(image: string) {
-  const match = image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+function mediaPart(media: string) {
+  const match = media.match(/^data:((image|audio|video)\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
   if (!match) return null;
   return {
     inline_data: {
       mime_type: match[1],
-      data: match[2],
+      data: match[3],
     },
   };
 }
@@ -103,9 +103,9 @@ export async function generateChatReply(opts: {
     }
   }
 
-  const parts: Array<{ text: string } | NonNullable<ReturnType<typeof imagePart>>> = [{ text: opts.message }];
+  const parts: Array<{ text: string } | NonNullable<ReturnType<typeof mediaPart>>> = [{ text: opts.message }];
   if (opts.image) {
-    const part = imagePart(opts.image);
+    const part = mediaPart(opts.image);
     if (part) parts.push(part);
   }
 
