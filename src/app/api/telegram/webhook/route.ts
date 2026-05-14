@@ -140,9 +140,9 @@ async function handleMessage(message: TelegramMessage) {
     await sendHome(chatId, account);
     return;
   }
-  if (text === "/logout" || text === "🔴 Logout") {
+  if (text === "/logout" || text === "🔴 Logout" || text === "🚪 Logout / Switch User") {
     await dbGunakul.from("telegram_accounts").update({ learner_id: null, phone: null, updated_at: new Date().toISOString() }).eq("id", account.id);
-    await sendMessage(chatId, "You have been logged out successfully.", { remove_keyboard: true });
+    await sendMessage(chatId, "You have been logged out successfully. Another person can now share their phone number to log in.\n\n*(Note: To remove previous messages from the screen, please use Telegram's built-in 'Clear History' option in the top-right menu.)*", { remove_keyboard: true });
     await requestPhone(chatId);
     return;
   }
@@ -424,7 +424,7 @@ function persistentMainMenu(): ReplyMarkup {
       [{ text: "Videos" }, { text: "Quiz" }],
       [{ text: "Ask Vajra Acharya" }, { text: "Field Apply" }],
       [{ text: "Tools" }, { text: "My Progress" }],
-      [{ text: "🔴 Logout" }],
+      [{ text: "🚪 Logout / Switch User" }],
     ],
     resize_keyboard: true,
   };
