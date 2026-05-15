@@ -274,12 +274,40 @@ async function handleCallback(query: TelegramCallbackQuery) {
     return;
   }
 
+  if (data.startsWith("confirm_lang:")) {
+    const lang = data.slice(13) as Lang;
+    if (!["bn", "hi", "en"].includes(lang)) return;
+    
+    const confirmMsg = lang === "hi" ? "क्या आप वाकई भाषा को हिंदी में बदलना चाहते हैं?" :
+                       lang === "bn" ? "আপনি কি সত্যিই ভাষা পরিবর্তন করে বাংলা করতে চান?" :
+                       "Are you sure you want to change the language to English?";
+    const yesText = lang === "hi" ? "हाँ" : lang === "bn" ? "হ্যাঁ" : "Yes";
+    const noText = lang === "hi" ? "नहीं" : lang === "bn" ? "না" : "No";
+
+    await sendMessage(chatId, confirmMsg, {
+      inline_keyboard: [[
+        { text: yesText, callback_data: `lang:${lang}` },
+        { text: noText, callback_data: "cancel_lang" }
+      ]]
+    });
+    return;
+  }
+
+  if (data === "cancel_lang") {
+    await sendMessage(chatId, "Language change cancelled.");
+    return;
+  }
+
   if (data.startsWith("lang:")) {
     const lang = data.slice(5) as Lang;
     if (!["bn", "hi", "en"].includes(lang)) return;
     await dbGunakul.from("telegram_accounts").update({ preferred_lang: lang, updated_at: new Date().toISOString() }).eq("id", account.id);
-    if (account.learner_id) await dbGunakul.from("learners").update({ preferred_lang: lang }).eq("id", account.learner_id);
-    await sendMessage(chatId, `Language set to ${lang.toUpperCase()}.`, persistentMainMenu(account.preferred_lang));
+    if (account.learner_id) {
+      await dbGunakul.from("learners").update({ preferred_lang: lang }).eq("id", account.learner_id);
+      await sendHome(chatId, { ...account, preferred_lang: lang });
+    } else {
+      await requestPhone(chatId, lang);
+    }
     return;
   }
 
@@ -478,9 +506,9 @@ async function sendHelp(chatId: number, account: TelegramAccount) {
 async function sendLanguagePicker(chatId: number) {
   await sendMessage(chatId, "Choose language.", {
     inline_keyboard: [[
-      { text: "English", callback_data: "lang:en" },
-      { text: "Hindi", callback_data: "lang:hi" },
-      { text: "Bengali", callback_data: "lang:bn" },
+      { text: "English", callback_data: "confirm_lang:en" },
+      { text: "Hindi", callback_data: "confirm_lang:hi" },
+      { text: "Bengali", callback_data: "confirm_lang:bn" },
     ]],
   });
 }
